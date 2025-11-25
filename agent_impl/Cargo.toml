@@ -1,0 +1,8 @@
+[package]
+name = "agent_impl"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+agent_lib = { path = "../agent_lib" }
+macroquad = "0.4"
