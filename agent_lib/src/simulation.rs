@@ -6,15 +6,17 @@ pub struct Simulation {
     screen: Screen,
     width: f32,
     height: f32,
+    depth: f32,
 }
 
 impl Simulation {
-    pub fn new(num_agents: usize, width: f32, height: f32) -> Self {
+    pub fn new(num_agents: usize, width: f32, height: f32, depth: f32) -> Self {
         Self {
-            world: World::new(num_agents, width, height),
-            screen: Screen::new(width, height),
+            world: World::new(num_agents, width, height, depth),
+            screen: Screen::new(width, height, depth),
             width,
             height,
+            depth,
         }
     }
 
@@ -32,6 +34,10 @@ impl Simulation {
 
     pub fn height(&self) -> f32 {
         self.height
+    }
+
+    pub fn depth(&self) -> f32 {
+        self.depth
     }
 
     pub fn step(&mut self) {
