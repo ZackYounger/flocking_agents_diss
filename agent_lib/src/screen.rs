@@ -1,4 +1,4 @@
-use crate::agent::Agent;
+use crate::boid::Boid;
 use macroquad::prelude::*;
 
 pub struct Screen {
@@ -12,7 +12,7 @@ impl Screen {
         Self { width, height, depth }
     }
 
-    pub fn draw_agents(&self, agents: &[Box<dyn Agent>]) {
+    pub fn draw_agents(&self, agents: &[Boid]) {
         clear_background(BLACK);
         
         // Setup 3D camera - orbiting horizontally around the cube
@@ -43,8 +43,8 @@ impl Screen {
 
         // Draw agents as 3D spheres
         for agent in agents {
-            let state = agent.state();
-            draw_sphere(vec3(state.pos.x, state.pos.y, state.pos.z), 5.0, None, BLUE);
+            let pos = &agent.agent.pos;
+            draw_sphere(vec3(pos.x, pos.y, pos.z), 5.0, None, BLUE);
         }
 
         // Reset to default 2D camera

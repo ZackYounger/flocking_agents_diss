@@ -1,10 +1,9 @@
-use crate::agent::Agent;
-use crate::fish::Fish;
+use crate::boid::Boid;
 use crate::vec::Vec2;
 use rand::Rng;
 
 pub struct World {
-    agents: Vec<Box<dyn Agent>>,
+    agents: Vec<Boid>,
     width: f32,
     height: f32,
     depth: f32,
@@ -20,18 +19,17 @@ impl World {
             let y = rng.gen_range(0.0..height);
             let z = rng.gen_range(-depth / 2.0..depth / 2.0);
             let pos = Vec2::new_3d(x, y, z);
-            let fish = Fish::new(pos);
-            agents.push(Box::new(fish) as Box<dyn Agent>);
+            agents.push(Boid::new(pos));
         }
         
         Self { agents, width, height, depth }
     }
 
-    pub fn add_agent(&mut self, agent: Box<dyn Agent>) {
+    pub fn add_agent(&mut self, agent: Boid) {
         self.agents.push(agent);
     }
 
-    pub fn agents(&self) -> &[Box<dyn Agent>] {
+    pub fn agents(&self) -> &[Boid] {
         &self.agents
     }
 
@@ -47,16 +45,21 @@ impl World {
         self.depth
     }
 
-    pub fn speak_all(&self) {
-        for agent in &self.agents {
-            agent.speak();
-        }
-    }
-
     pub fn update(&mut self) {
-        // Update world state (e.g., move agents based on velocity)
-        for _agent in &mut self.agents {
-            // Agents will be updated here
+        // First pass: calculate new positions/velocities for all boids
+        // We need to collect boid data to avoid borrow checker issues
+        let agent_data: Vec<Boid> = self.agents.iter().copied().collect();
+        let width = self.width;
+        let height = self.height;
+        let depth = self.depth;
+        
+        for agent in &mut self.agents {
+            agent.update(&agent_data, width, height, depth);
+        }
+        
+        // Second pass: apply the updates
+        for agent in &mut self.agents {
+            agent.apply_update();
         }
     }
 }

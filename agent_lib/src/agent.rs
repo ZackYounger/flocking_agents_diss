@@ -2,24 +2,112 @@ use std::fmt::Debug;
 
 pub use crate::vec::Vec2;
 
-#[derive(Debug)]
-pub struct AgentState {
+#[derive(Debug, Copy, Clone)]
+pub struct Agent {
     pub pos: Vec2,
+    pub new_pos: Vec2,
     pub vel: Vec2,
-    pub name: String,
+    pub new_vel: Vec2,
 }
 
-impl AgentState {
-    pub fn new(pos: Vec2, name: String) -> Self {
+impl Agent {
+    pub fn new(pos: Vec2) -> Self {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+        
+        // Start with a small random velocity
+        let initial_speed = 0.5;
+        let vel = Vec2::new_3d(
+            rng.gen_range(-initial_speed..initial_speed),
+            rng.gen_range(-initial_speed..initial_speed),
+            rng.gen_range(-initial_speed..initial_speed),
+        );
+        
         Self {
             pos,
-            vel: Vec2::zero(),
-            name,
+            new_pos: pos,
+            vel,
+            new_vel: vel,
         }
     }
-}
 
-pub trait Agent: Debug {
-    fn speak(&self);
-    fn state(&self) -> &AgentState;
+    pub fn apply_update(&mut self) {
+        self.vel = self.new_vel;
+        self.pos = self.new_pos;
+    }
+
+    // Boid behavior functions - can be reused by different agent types
+    pub fn alignment(&self, neighbors: &[&Agent]) -> Vec2 {
+        if neighbors.is_empty() {
+            return Vec2::zero();
+        }
+
+        let mut avg_vel = Vec2::zero();
+        for neighbor in neighbors {
+            avg_vel = avg_vel + neighbor.vel;
+        }
+        avg_vel.x /= neighbors.len() as f32;
+        avg_vel.y /= neighbors.len() as f32;
+        avg_vel.z /= neighbors.len() as f32;
+
+        return avg_vel / 8.0;
+    }
+
+    pub fn cohesion(&self, neighbors: &[&Agent]) -> Vec2 {
+        if neighbors.is_empty() {
+            return Vec2::zero();
+        }
+
+        let mut center_of_mass = Vec2::zero();
+        for neighbor in neighbors {
+            center_of_mass = center_of_mass + neighbor.pos;
+        }
+        center_of_mass.x /= neighbors.len() as f32;
+        center_of_mass.y /= neighbors.len() as f32;
+        center_of_mass.z /= neighbors.len() as f32;
+
+        return (center_of_mass - self.pos) / 100.0;
+    }
+
+    pub fn separation(&self, neighbors: &[&Agent]) -> Vec2 {
+        let mut repulsion = Vec2::zero();
+        for neighbor in neighbors {
+            let diff = self.pos - neighbor.pos;
+            let distance_sq = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
+            if distance_sq > 0.0 {
+                repulsion = repulsion + (diff / distance_sq);
+            }
+        }
+
+        return repulsion / 10.0;
+    }
+
+    pub fn edge_avoidance(&self, width: f32, height: f32, depth: f32) -> Vec2 {
+        let margin = 50.0; // Distance from edge to start applying force
+        let turn_factor = 0.5; // Strength of the turning force
+        let mut avoidance = Vec2::zero();
+
+        // Check X bounds
+        if self.pos.x < margin {
+            avoidance.x += turn_factor;
+        } else if self.pos.x > width - margin {
+            avoidance.x -= turn_factor;
+        }
+
+        // Check Y bounds
+        if self.pos.y < margin {
+            avoidance.y += turn_factor;
+        } else if self.pos.y > height - margin {
+            avoidance.y -= turn_factor;
+        }
+
+        // Check Z bounds
+        if self.pos.z < -depth / 2.0 + margin {
+            avoidance.z += turn_factor;
+        } else if self.pos.z > depth / 2.0 - margin {
+            avoidance.z -= turn_factor;
+        }
+
+        avoidance
+    }
 }

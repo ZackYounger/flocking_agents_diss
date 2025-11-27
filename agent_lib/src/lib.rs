@@ -1,6 +1,6 @@
 pub mod vec;
 pub mod agent;
-pub mod fish;
+pub mod boid;
 pub mod world;
 pub mod simulation;
 pub mod screen;

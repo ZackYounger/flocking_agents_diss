@@ -48,13 +48,4 @@ impl Simulation {
     pub fn draw(&self) {
         self.screen.draw_agents(self.world.agents());
     }
-
-    pub fn run(&mut self, steps: usize) {
-        for _ in 0..steps {
-            self.step();
-            self.world.speak_all();
-            self.screen.draw_agents(self.world.agents());
-            println!("---");
-        }
-    }
 }
