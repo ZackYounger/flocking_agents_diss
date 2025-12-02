@@ -110,4 +110,15 @@ impl Agent {
 
         avoidance
     }
+
+    pub fn random_jitter(&self, jitter_strength: f32) -> Vec2 {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+        
+        Vec2::new_3d(
+            rng.gen_range(-jitter_strength..jitter_strength),
+            rng.gen_range(-jitter_strength..jitter_strength),
+            rng.gen_range(-jitter_strength..jitter_strength),
+        )
+    }
 }

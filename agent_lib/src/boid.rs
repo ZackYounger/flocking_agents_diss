@@ -39,7 +39,7 @@ impl Boid {
         let edge_avoidance = self.agent.edge_avoidance(width, height, depth);
         
         // Add random jitter to prevent perfect equilibrium
-        let jitter = self.random_jitter();
+        let jitter = self.agent.random_jitter(0.1);
 
         // Apply moderate drag to current velocity
         let drag = 0.98; 
@@ -64,19 +64,6 @@ impl Boid {
         }
         
         self.agent.new_pos = self.agent.pos + self.agent.new_vel;
-    }
-
-    fn random_jitter(&self) -> Vec2 {
-        use rand::Rng;
-        let mut rng = rand::thread_rng();
-        
-        // Small random force to add variation
-        let jitter_strength = 0.1;
-        Vec2::new_3d(
-            rng.gen_range(-jitter_strength..jitter_strength),
-            rng.gen_range(-jitter_strength..jitter_strength),
-            rng.gen_range(-jitter_strength..jitter_strength),
-        )
     }
 
     pub fn apply_update(&mut self) {
