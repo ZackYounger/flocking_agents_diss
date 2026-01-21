@@ -3,9 +3,9 @@ use macroquad::prelude::*;
 
 #[macroquad::main("Splingo")]
 async fn main() {
-    let width = 300.0;
-    let height = 300.0;
-    let depth = 300.0;
+    let width = 450.0;
+    let height = 450.0;
+    let depth = 450.0;
     let num_agents = 100;
     
     let mut sim = Simulation::new(num_agents, width, height, depth);

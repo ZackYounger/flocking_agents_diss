@@ -9,6 +9,7 @@ pub struct Boid {
     pub alignment_weight: f32,
     pub cohesion_weight: f32,
     pub separation_weight: f32,
+    pub perception_radius: f32,
 }
 
 impl Boid {
@@ -19,35 +20,24 @@ impl Boid {
             alignment_weight: 1.0,
             cohesion_weight: 0.5,    // Reduced cohesion
             separation_weight: 2.5,  // Stronger separation to maintain spacing
+            perception_radius: 35.0,
         }
     }
 
     pub fn update(&mut self, all_boids: &[Boid], width: f32, height: f32, depth: f32) {
-        // Filter neighbors within perception radius for alignment and cohesion
-        let perception_radius = 35.0;  // Reduced to create local flocking, not global convergence
-        let separation_radius = 25.0;  // Closer radius for separation to prevent crowding
-        
+
         let neighbors: Vec<&Agent> = all_boids.iter()
             .map(|b| &b.agent)
             .filter(|agent| {
                 let diff = self.agent.pos - agent.pos;
                 let distance_sq = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
-                distance_sq < perception_radius * perception_radius && distance_sq > 0.0
-            }).collect();
-        
-        // Get closer neighbors for separation
-        let close_neighbors: Vec<&Agent> = all_boids.iter()
-            .map(|b| &b.agent)
-            .filter(|agent| {
-                let diff = self.agent.pos - agent.pos;
-                let distance_sq = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
-                distance_sq < separation_radius * separation_radius && distance_sq > 0.0
+                distance_sq < self.perception_radius * self.perception_radius && distance_sq > 0.0
             }).collect();
 
-        // Calculate steering forces with weights
+        // Calculate steering forces with weights (using same neighbors for all three forces)
         let alignment = self.agent.alignment(&neighbors) * self.alignment_weight;
         let cohesion = self.agent.cohesion(&neighbors) * self.cohesion_weight;
-        let separation = self.agent.separation(&close_neighbors) * self.separation_weight;
+        let separation = self.agent.separation(&neighbors) * self.separation_weight;
 
         // Calculate total steering force (no edge avoidance - using wrapping instead)
         let steering = alignment + cohesion + separation;
@@ -56,7 +46,6 @@ impl Boid {
         self.agent.new_vel = self.agent.vel + steering;
         
         // Speed management: maintain preferred cruising speed
-        let preferred_speed = 2.0;
         let max_speed = 4.0;
         let min_speed = 1.0;
         
@@ -67,15 +56,11 @@ impl Boid {
         if speed_sq > 0.0001 {  // Avoid division by zero
             let speed = speed_sq.sqrt();
             
-            // Clamp to min/max speed
+            // Clamp to min/max speed only
             if speed > max_speed {
                 self.agent.new_vel = self.agent.new_vel / speed * max_speed;
             } else if speed < min_speed {
                 self.agent.new_vel = self.agent.new_vel / speed * min_speed;
-            } else {
-                // Gently push towards preferred speed
-                let speed_adjustment = (preferred_speed - speed) * 0.05;
-                self.agent.new_vel = self.agent.new_vel / speed * (speed + speed_adjustment);
             }
         } else {
             // If somehow stopped, give a random direction at min speed

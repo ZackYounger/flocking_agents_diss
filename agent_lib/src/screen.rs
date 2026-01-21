@@ -19,7 +19,7 @@ impl Screen {
         let time = get_time() as f32;
         let orbit_speed = 0.3;
         let angle = time * orbit_speed;
-        let distance = (self.width.max(self.height).max(self.depth) * 1.5).max(400.0);  // Halved from 800 to maintain visual size
+        let distance = (self.width.max(self.height).max(self.depth) * 1.5).max(600.0);  // Scaled with world size
         
         let center_x = self.width / 2.0;
         let center_y = self.height / 2.0;
