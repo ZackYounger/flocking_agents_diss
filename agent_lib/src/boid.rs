@@ -15,15 +15,18 @@ impl Boid {
     pub fn new(pos: Vec2) -> Self {
         Self {
             agent: Agent::new(pos),
+            // Adjusted weights to reduce clumping
             alignment_weight: 1.0,
-            cohesion_weight: 0.5,
-            separation_weight: 3.0,
+            cohesion_weight: 0.5,    // Reduced cohesion
+            separation_weight: 2.5,  // Stronger separation to maintain spacing
         }
     }
 
     pub fn update(&mut self, all_boids: &[Boid], width: f32, height: f32, depth: f32) {
-        // Filter neighbors within perception radius
-        let perception_radius = 50.0;
+        // Filter neighbors within perception radius for alignment and cohesion
+        let perception_radius = 35.0;  // Reduced to create local flocking, not global convergence
+        let separation_radius = 25.0;  // Closer radius for separation to prevent crowding
+        
         let neighbors: Vec<&Agent> = all_boids.iter()
             .map(|b| &b.agent)
             .filter(|agent| {
@@ -31,40 +34,86 @@ impl Boid {
                 let distance_sq = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
                 distance_sq < perception_radius * perception_radius && distance_sq > 0.0
             }).collect();
+        
+        // Get closer neighbors for separation
+        let close_neighbors: Vec<&Agent> = all_boids.iter()
+            .map(|b| &b.agent)
+            .filter(|agent| {
+                let diff = self.agent.pos - agent.pos;
+                let distance_sq = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
+                distance_sq < separation_radius * separation_radius && distance_sq > 0.0
+            }).collect();
 
-        // Use the reusable boid behavior functions from Agent with weights
+        // Calculate steering forces with weights
         let alignment = self.agent.alignment(&neighbors) * self.alignment_weight;
         let cohesion = self.agent.cohesion(&neighbors) * self.cohesion_weight;
-        let separation = self.agent.separation(&neighbors) * self.separation_weight;
-        let edge_avoidance = self.agent.edge_avoidance(width, height, depth);
-        
-        // Add random jitter to prevent perfect equilibrium
-        let jitter = self.agent.random_jitter(0.1);
+        let separation = self.agent.separation(&close_neighbors) * self.separation_weight;
 
-        // Apply moderate drag to current velocity
-        let drag = 0.98; 
-        let damped_vel = self.agent.vel * drag;
+        // Calculate total steering force (no edge avoidance - using wrapping instead)
+        let steering = alignment + cohesion + separation;
         
-        self.agent.new_vel = damped_vel + alignment + cohesion + separation + edge_avoidance + jitter;
+        // Update velocity with steering force
+        self.agent.new_vel = self.agent.vel + steering;
         
-        // Apply both min and max speed limits for stability
-        let min_speed = 0.5;
-        let max_speed = 3.0;
+        // Speed management: maintain preferred cruising speed
+        let preferred_speed = 2.0;
+        let max_speed = 4.0;
+        let min_speed = 1.0;
+        
         let speed_sq = self.agent.new_vel.x * self.agent.new_vel.x 
                      + self.agent.new_vel.y * self.agent.new_vel.y 
                      + self.agent.new_vel.z * self.agent.new_vel.z;
         
         if speed_sq > 0.0001 {  // Avoid division by zero
             let speed = speed_sq.sqrt();
+            
+            // Clamp to min/max speed
             if speed > max_speed {
                 self.agent.new_vel = self.agent.new_vel / speed * max_speed;
             } else if speed < min_speed {
                 self.agent.new_vel = self.agent.new_vel / speed * min_speed;
+            } else {
+                // Gently push towards preferred speed
+                let speed_adjustment = (preferred_speed - speed) * 0.05;
+                self.agent.new_vel = self.agent.new_vel / speed * (speed + speed_adjustment);
             }
+        } else {
+            // If somehow stopped, give a random direction at min speed
+            use rand::Rng;
+            let mut rng = rand::thread_rng();
+            let angle_xy = rng.gen_range(0.0..std::f32::consts::TAU);
+            let angle_z = rng.gen_range(-std::f32::consts::PI / 4.0..std::f32::consts::PI / 4.0);
+            
+            self.agent.new_vel = Vec2::new_3d(
+                angle_xy.cos() * angle_z.cos() * min_speed,
+                angle_xy.sin() * angle_z.cos() * min_speed,
+                angle_z.sin() * min_speed,
+            );
         }
         
         self.agent.new_pos = self.agent.pos + self.agent.new_vel;
+        
+        // Wrap around edges (toroidal space)
+        if self.agent.new_pos.x < 0.0 {
+            self.agent.new_pos.x += width;
+        } else if self.agent.new_pos.x > width {
+            self.agent.new_pos.x -= width;
+        }
+        
+        if self.agent.new_pos.y < 0.0 {
+            self.agent.new_pos.y += height;
+        } else if self.agent.new_pos.y > height {
+            self.agent.new_pos.y -= height;
+        }
+        
+        if self.agent.new_pos.z < -depth / 2.0 {
+            self.agent.new_pos.z += depth;
+        } else if self.agent.new_pos.z > depth / 2.0 {
+            self.agent.new_pos.z -= depth;
+        }
     }
+
+
 
     pub fn apply_update(&mut self) {
         self.agent.apply_update();

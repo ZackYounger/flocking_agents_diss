@@ -15,12 +15,15 @@ impl Agent {
         use rand::Rng;
         let mut rng = rand::thread_rng();
         
-        // Start with a small random velocity
-        let initial_speed = 0.5;
+        // Start with velocity at preferred cruising speed
+        let initial_speed = 2.0;  // Match the preferred speed
+        let angle_xy = rng.gen_range(0.0..std::f32::consts::TAU);
+        let angle_z = rng.gen_range(-std::f32::consts::PI / 4.0..std::f32::consts::PI / 4.0);
+        
         let vel = Vec2::new_3d(
-            rng.gen_range(-initial_speed..initial_speed),
-            rng.gen_range(-initial_speed..initial_speed),
-            rng.gen_range(-initial_speed..initial_speed),
+            angle_xy.cos() * angle_z.cos() * initial_speed,
+            angle_xy.sin() * angle_z.cos() * initial_speed,
+            angle_z.sin() * initial_speed,
         );
         
         Self {
@@ -50,7 +53,8 @@ impl Agent {
         avg_vel.y /= neighbors.len() as f32;
         avg_vel.z /= neighbors.len() as f32;
 
-        return avg_vel / 8.0;
+        // Return steering force towards average heading
+        return (avg_vel - self.vel) * 0.05;
     }
 
     pub fn cohesion(&self, neighbors: &[&Agent]) -> Vec2 {
@@ -66,7 +70,8 @@ impl Agent {
         center_of_mass.y /= neighbors.len() as f32;
         center_of_mass.z /= neighbors.len() as f32;
 
-        return (center_of_mass - self.pos) / 100.0;
+        // Steer towards center of mass with proper scaling
+        return (center_of_mass - self.pos) * 0.003;  // Reduced to make cohesion gentler
     }
 
     pub fn separation(&self, neighbors: &[&Agent]) -> Vec2 {
@@ -79,7 +84,7 @@ impl Agent {
             }
         }
 
-        return repulsion / 10.0;
+        return repulsion * 0.1;  // Stronger separation force
     }
 
     pub fn edge_avoidance(&self, width: f32, height: f32, depth: f32) -> Vec2 {

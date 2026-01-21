@@ -19,7 +19,7 @@ impl Screen {
         let time = get_time() as f32;
         let orbit_speed = 0.3;
         let angle = time * orbit_speed;
-        let distance = (self.width.max(self.height).max(self.depth) * 1.5).max(800.0);
+        let distance = (self.width.max(self.height).max(self.depth) * 1.5).max(400.0);  // Halved from 800 to maintain visual size
         
         let center_x = self.width / 2.0;
         let center_y = self.height / 2.0;
@@ -41,10 +41,9 @@ impl Screen {
         // Draw simulation space bounding box
         self.draw_bounding_box();
 
-        // Draw agents as 3D spheres
+        // Draw agents as cones pointing in their direction
         for agent in agents {
-            let pos = &agent.agent.pos;
-            draw_sphere(vec3(pos.x, pos.y, pos.z), 5.0, None, BLUE);
+            self.draw_cone_for_agent(agent);
         }
 
         // Reset to default 2D camera
@@ -81,6 +80,88 @@ impl Screen {
         draw_line_3d(corners[1], corners[5], WHITE);
         draw_line_3d(corners[2], corners[6], WHITE);
         draw_line_3d(corners[3], corners[7], WHITE);
+    }
+
+    fn draw_cone_for_agent(&self, agent: &Boid) {
+        let pos = &agent.agent.pos;
+        let vel = &agent.agent.vel;
+        
+        // Cone dimensions
+        let cone_length = 8.0;
+        let cone_radius = 2.5;
+        let num_segments = 8;
+        
+        // Normalize velocity to get direction
+        let speed_sq = vel.x * vel.x + vel.y * vel.y + vel.z * vel.z;
+        if speed_sq < 0.0001 {
+            // If not moving, just draw a small sphere
+            draw_sphere(vec3(pos.x, pos.y, pos.z), 2.0, None, BLUE);
+            return;
+        }
+        
+        let speed = speed_sq.sqrt();
+        let dir_x = vel.x / speed;
+        let dir_y = vel.y / speed;
+        let dir_z = vel.z / speed;
+        
+        // Cone tip (pointing in direction of movement)
+        let tip = vec3(
+            pos.x + dir_x * cone_length,
+            pos.y + dir_y * cone_length,
+            pos.z + dir_z * cone_length,
+        );
+        
+        // Create a perpendicular vector for the base circle
+        let (perp_x, perp_y, perp_z) = if dir_y.abs() < 0.9 {
+            // Cross product with Y axis
+            let px = dir_z;
+            let py = 0.0;
+            let pz = -dir_x;
+            let plen = (px * px + pz * pz).sqrt();
+            (px / plen, py, pz / plen)
+        } else {
+            // Cross product with X axis
+            let px = 0.0;
+            let py = -dir_z;
+            let pz = dir_y;
+            let plen = (py * py + pz * pz).sqrt();
+            (px, py / plen, pz / plen)
+        };
+        
+        // Second perpendicular (cross product of direction and first perp)
+        let perp2_x = dir_y * perp_z - dir_z * perp_y;
+        let perp2_y = dir_z * perp_x - dir_x * perp_z;
+        let perp2_z = dir_x * perp_y - dir_y * perp_x;
+        
+        // Draw cone base circle and lines to tip
+        for i in 0..num_segments {
+            let angle1 = (i as f32) * std::f32::consts::TAU / (num_segments as f32);
+            let angle2 = ((i + 1) as f32) * std::f32::consts::TAU / (num_segments as f32);
+            
+            let cos1 = angle1.cos();
+            let sin1 = angle1.sin();
+            let cos2 = angle2.cos();
+            let sin2 = angle2.sin();
+            
+            // Points on base circle
+            let base1 = vec3(
+                pos.x + (perp_x * cos1 + perp2_x * sin1) * cone_radius,
+                pos.y + (perp_y * cos1 + perp2_y * sin1) * cone_radius,
+                pos.z + (perp_z * cos1 + perp2_z * sin1) * cone_radius,
+            );
+            
+            let base2 = vec3(
+                pos.x + (perp_x * cos2 + perp2_x * sin2) * cone_radius,
+                pos.y + (perp_y * cos2 + perp2_y * sin2) * cone_radius,
+                pos.z + (perp_z * cos2 + perp2_z * sin2) * cone_radius,
+            );
+            
+            // Draw base circle edge
+            draw_line_3d(base1, base2, BLUE);
+            
+            // Draw line from base to tip
+            draw_line_3d(base1, tip, BLUE);
+        }
     }
 
     pub fn width(&self) -> f32 {
