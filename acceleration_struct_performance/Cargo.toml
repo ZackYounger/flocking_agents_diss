@@ -1,0 +1,8 @@
+[package]
+name = "acceleration_struct_performance"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+agent_lib = { path = "../agent_lib" }
+csv = "1.1.1"

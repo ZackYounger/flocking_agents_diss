@@ -1,0 +1,48 @@
+% !TEX root = ../main.tex
+\chapter{Methodology}
+\label{chap:methodology}
+
+\section{Boids}
+\label{sec:boids}
+
+First I will discuss the core Boids algorithm, based on Reynolds' original model \cite{reynolds1987flocks}, that makes up the basis of my work.
+
+We utilise a set $B$ of $n$ agents:
+
+$$B = \{b_0, b_1, \ldots, b_{n-1}\}$$
+
+Where each agent $b_i$ has a position vector $\vec{p}_i$ and a velocity vector $\vec{v}_i$. The agents move in a continuous 3D space according the three primary rules; Separation, Alignment, and Cohesion.
+
+\subsection{Perception}
+Importantly, Boid's movement rules are based on local perception. Each agent $b_i$ has a perception radius $r$, and can only perceive other agents $b_j$ that are within this radius. In the standard definition of Boids\cite{reynolds1987flocks}, Boids can see all around them.
+
+These neighbours are then utilised to calculate the steering forces of the three primary rules.
+
+\subsection{Separation}
+
+The separation rule allows the Boids to avoid collisions and overcrowding. For each agent $b_i$, we calculate a separation vector $\vec{s}_i$ that steers the agent away from its neighbours. This is done by summing the inverse of the displacement vectors to each neighbour:
+
+$$\vec{s}_i = -\sum_{b_j \in N_i} (\vec{p}_i - \vec{p}_j)$$
+
+\subsection{Cohesion}
+
+The cohesion rule steers the Boids towards the average position of their neighbours. This counteracts the separation rule and helps maintain the flock. The cohesion vector $\vec{c}_i$ is calculated as:
+
+$$\vec{c}_i = \frac{1}{|N_i|} \sum_{b_j \in N_i} \vec{p}_j - \vec{p}_i$$
+
+\subsection{Alignment}
+
+The alignment rule steers the Boids to match the average velocity of their neighbours. This helps the flock move in a unified direction. The alignment vector $\vec{a}_i$ is calculated as:
+
+$$\vec{a}_i = \frac{1}{|N_i|} \sum_{b_j \in N_i} \vec{v}_j - \vec{v}_i$$
+
+\subsection{Utilising the rules}
+
+The final steering vector $\vec{f}_i$ for each agent $b_i$ is a weighted sum of the three rules:
+
+$$\vec{f}_i = w_s \vec{s}_i + w_c \vec{c}_i + w_a \vec{a}_i$$
+
+Where $w_s$, $w_c$, and $w_a$ are the weights for separation, cohesion, and alignment respectively. We can tune these weights to adjust the behaviour of the flock.
+Finally, the agent's velocity and position are updated based on the steering vector:
+
+$$\vec{v}_i = \vec{v}_i + \vec{f}_i$$

@@ -1,0 +1,21 @@
+\section{Evaluation}
+\label{sec:evaluation}
+
+\subsection{Performance}
+
+The main metric that I will be utilising to compare and evaluate different methodologies will be the time taken.
+
+\subsubsection{Acceleration Structure Performance}
+
+For the acceleration structures, I will be measuring the time taken to query the neighbours for each agent. This will be done by running the simulation for a fixed number of steps and measuring the average time taken per step for neighbour queries.
+I will vary the number of agents to effectively compare and contrast the performances under different loads.
+
+\subsection{Accuracy}
+
+Firstly to ensure that I have an effective flocking algorithm, I will be using Polarisation. It is a critical metric for evaluating the collective behaviour of the flock. It measures how aligned the agents are in their movement, with 1 indicating perfect alignment and 0 indicating random movement.
+
+$$\Phi = \frac{1}{N} \left| \sum_{i=1}^{N} \hat{\mathbf{v}}_i \right|$$
+
+This allowws us to utilise Polarization Susceptibility, which is the variance of the polarization over time, used to measure the stability of the flocking behaviour. Susceptibility can be thought as as the responsiveness of the system.
+
+$$\chi = N (\langle \Phi^2 \rangle - \langle \Phi \rangle^2)$$

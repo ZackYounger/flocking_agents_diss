@@ -1,4 +1,4 @@
-use crate::boid::Boid;
+use crate::agent::FlockAgent;
 use macroquad::prelude::*;
 
 pub struct Screen {
@@ -12,10 +12,12 @@ impl Screen {
         Self { width, height, depth }
     }
 
-    pub fn draw_agents(&self, agents: &[Boid]) {
+    pub fn draw_agents<A: FlockAgent>(&self, agents: &[A]) {
         clear_background(BLACK);
         
-        // Setup 3D camera - orbiting horizontally around the cube
+        // 3D camera
+        // Orbiting camera around the center of the world
+        // Because why the hell not
         let time = get_time() as f32;
         let orbit_speed = 0.3;
         let angle = time * orbit_speed;
@@ -38,29 +40,27 @@ impl Screen {
             ..Default::default()
         });
 
-        // Draw simulation space bounding box
         self.draw_bounding_box();
 
-        // Draw agents as cones pointing in their direction
+        // Draw agents
         for agent in agents {
             self.draw_cone_for_agent(agent);
         }
 
-        // Reset to default 2D camera
         set_default_camera();
     }
 
     fn draw_bounding_box(&self) {
         // Define 8 corners of the bounding box
         let corners = [
-            vec3(0.0, 0.0, -self.depth / 2.0),              // 0: front-bottom-left
-            vec3(self.width, 0.0, -self.depth / 2.0),       // 1: front-bottom-right
+            vec3(0.0, 0.0, -self.depth / 2.0),                // 0: front-bottom-left
+            vec3(self.width, 0.0, -self.depth / 2.0),         // 1: front-bottom-right
             vec3(self.width, self.height, -self.depth / 2.0), // 2: front-top-right
-            vec3(0.0, self.height, -self.depth / 2.0),      // 3: front-top-left
-            vec3(0.0, 0.0, self.depth / 2.0),               // 4: back-bottom-left
-            vec3(self.width, 0.0, self.depth / 2.0),        // 5: back-bottom-right
+            vec3(0.0, self.height, -self.depth / 2.0),        // 3: front-top-left
+            vec3(0.0, 0.0, self.depth / 2.0),                 // 4: back-bottom-left
+            vec3(self.width, 0.0, self.depth / 2.0),          // 5: back-bottom-right
             vec3(self.width, self.height, self.depth / 2.0),  // 6: back-top-right
-            vec3(0.0, self.height, self.depth / 2.0),       // 7: back-top-left
+            vec3(0.0, self.height, self.depth / 2.0),         // 7: back-top-left
         ];
         
         // Draw front face
@@ -82,10 +82,13 @@ impl Screen {
         draw_line_3d(corners[3], corners[7], WHITE);
     }
 
-    fn draw_cone_for_agent(&self, agent: &Boid) {
-        let pos = &agent.agent.pos;
-        let vel = &agent.agent.vel;
-        
+// Probably not the most efficient way to do this
+fn draw_cone_for_agent<A: FlockAgent>(&self, agent: &A) {
+        let core_agent = agent.get_agent();
+        let pos = &core_agent.pos;
+        let vel = &core_agent.vel;
+        let color = agent.display_color();
+
         // Cone dimensions
         let cone_length = 8.0;
         let cone_radius = 2.5;
@@ -95,22 +98,21 @@ impl Screen {
         let speed_sq = vel.x * vel.x + vel.y * vel.y + vel.z * vel.z;
         if speed_sq < 0.0001 {
             // If not moving, just draw a small sphere
-            draw_sphere(vec3(pos.x, pos.y, pos.z), 2.0, None, BLUE);
+            draw_sphere(vec3(pos.x, pos.y, pos.z), 2.0, None, color);
             return;
         }
-        
+
         let speed = speed_sq.sqrt();
         let dir_x = vel.x / speed;
         let dir_y = vel.y / speed;
         let dir_z = vel.z / speed;
         
-        // Cone tip (pointing in direction of movement)
         let tip = vec3(
             pos.x + dir_x * cone_length,
             pos.y + dir_y * cone_length,
             pos.z + dir_z * cone_length,
         );
-        
+
         // Create a perpendicular vector for the base circle
         let (perp_x, perp_y, perp_z) = if dir_y.abs() < 0.9 {
             // Cross product with Y axis
@@ -157,12 +159,13 @@ impl Screen {
             );
             
             // Draw base circle edge
-            draw_line_3d(base1, base2, BLUE);
+            draw_line_3d(base1, base2, color);
             
             // Draw line from base to tip
-            draw_line_3d(base1, tip, BLUE);
+            draw_line_3d(base1, tip, color);
         }
     }
+
 
     pub fn width(&self) -> f32 {
         self.width

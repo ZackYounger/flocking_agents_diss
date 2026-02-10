@@ -5,4 +5,7 @@ edition = "2024"
 
 [dependencies]
 rand = "0.8"
+rand_distr = "0.4"
 macroquad = "0.4"
+rayon = "1.10"
+csv = "1.1.1"
