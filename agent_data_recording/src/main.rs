@@ -36,12 +36,14 @@ fn main() {
     }
     println!("Simulation stabilised");
     
-    println!("Collecting query times for {} steps", analysis_steps);
-    let all_query_times = sim.collect_query_times_for_n_steps(analysis_steps);
-    println!("Saving query times to agent_speeds.csv");
+    println!("Collecting agent speeds for {} steps", analysis_steps);
     let mut file = File::create("agent_speeds.csv").expect("Could not create CSV file");
-    for query_time in all_query_times {
-        writeln!(file, "{}", query_time).expect("Could not write to CSV file");
+    for _ in 0..analysis_steps {
+        sim.step();
+        let speeds = sim.get_agent_speeds();
+        for speed in speeds {
+            writeln!(file, "{}", speed).expect("Could not write to CSV file");
+        }
     }
-    println!("Query times saved to agent_speeds.csv");
+    println!("Agent speeds saved to agent_speeds.csv");
 }
